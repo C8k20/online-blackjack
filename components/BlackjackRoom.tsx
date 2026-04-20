@@ -19,11 +19,22 @@ export function BlackjackRoom() {
   const [joinCode, setJoinCode] = useState("");
   const [banner, setBanner] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [token, setToken] = useState<string>("");
+  const [authUser, setAuthUser] = useState<string>("");
+  const [authPass, setAuthPass] = useState<string>("");
+  const [betAmount, setBetAmount] = useState<string>("");
+
+  useEffect(() => {
+    const saved =
+      typeof window !== "undefined" ? window.localStorage.getItem("blackjackToken") : null;
+    if (saved) setToken(saved);
+  }, []);
 
   useEffect(() => {
     const s = io(socketUrl(), {
       transports: ["websocket", "polling"],
       autoConnect: true,
+      auth: token ? { token } : undefined,
     });
     setSocket(s);
 
@@ -53,7 +64,7 @@ export function BlackjackRoom() {
       s.removeAllListeners();
       s.close();
     };
-  }, []);
+  }, [token]);
 
   const runAck = useCallback(
     (err: unknown) => {
@@ -121,14 +132,86 @@ export function BlackjackRoom() {
     socket.emit("action:stand", runAck);
   };
 
+  const setBet = () => {
+    if (!socket) return;
+    const n = Number(betAmount);
+    if (!Number.isFinite(n)) return;
+    setPending(true);
+    setBanner(null);
+    socket.emit("bet:set", Math.floor(n), runAck);
+  };
+
+  const login = async () => {
+    setPending(true);
+    setBanner(null);
+    try {
+      const r = await fetch(`${socketUrl()}/auth/login`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ username: authUser, password: authPass }),
+      });
+      const j = (await r.json()) as { ok: boolean; token?: string; error?: string };
+      if (!j.ok || !j.token) throw new Error(j.error ?? "Login failed");
+      window.localStorage.setItem("blackjackToken", j.token);
+      setToken(j.token);
+      setAuthPass("");
+    } catch (e) {
+      setBanner(e instanceof Error ? e.message : "Login failed");
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const register = async () => {
+    setPending(true);
+    setBanner(null);
+    try {
+      const r = await fetch(`${socketUrl()}/auth/register`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ username: authUser, password: authPass }),
+      });
+      const j = (await r.json()) as { ok: boolean; token?: string; error?: string };
+      if (!j.ok || !j.token) throw new Error(j.error ?? "Register failed");
+      window.localStorage.setItem("blackjackToken", j.token);
+      setToken(j.token);
+      setAuthPass("");
+    } catch (e) {
+      setBanner(e instanceof Error ? e.message : "Register failed");
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const logout = async () => {
+    const t = token;
+    window.localStorage.removeItem("blackjackToken");
+    setToken("");
+    leaveRoom();
+    if (!t) return;
+    try {
+      await fetch(`${socketUrl()}/auth/logout`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${t}` },
+      });
+    } catch {
+      // ignore
+    }
+  };
+
   const me = useMemo(
     () => room?.players.find((p) => p.id === myPlayerId) ?? null,
     [room, myPlayerId],
   );
 
   const isHost = !!(room && myPlayerId && room.hostPlayerId === myPlayerId);
+  const allBet = !!room?.players.every((p) => p.bet > 0);
   const canStart =
-    isHost && room?.phase === "lobby" && (room.players.length ?? 0) >= 2 && !pending;
+    isHost &&
+    room?.phase === "lobby" &&
+    (room.players.length ?? 0) >= 2 &&
+    allBet &&
+    !pending;
   const myTurn =
     room?.phase === "playing" &&
     myPlayerId &&
@@ -156,6 +239,15 @@ export function BlackjackRoom() {
               {connected ? "Connected" : "Disconnected"}
             </span>
             <span className="text-zinc-500 dark:text-zinc-400">{socketUrl()}</span>
+            {token ? (
+              <button
+                type="button"
+                onClick={logout}
+                className="rounded-md border border-zinc-300 px-2 py-1 text-xs dark:border-zinc-600"
+              >
+                Log out
+              </button>
+            ) : null}
           </div>
         </div>
       </header>
@@ -167,7 +259,52 @@ export function BlackjackRoom() {
           </p>
         )}
 
-        {!room ? (
+        {!token ? (
+          <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <h2 className="mb-4 text-base font-medium">Account</h2>
+            <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">
+              Create an account or log in to save your chips and bets.
+            </p>
+            <label className="mb-2 block text-sm text-zinc-600 dark:text-zinc-400">
+              Username
+              <input
+                className="mt-1 w-full max-w-md rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100"
+                value={authUser}
+                onChange={(e) => setAuthUser(e.target.value)}
+                placeholder="username"
+                maxLength={24}
+              />
+            </label>
+            <label className="mb-2 block text-sm text-zinc-600 dark:text-zinc-400">
+              Password
+              <input
+                className="mt-1 w-full max-w-md rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100"
+                value={authPass}
+                onChange={(e) => setAuthPass(e.target.value)}
+                placeholder="password"
+                type="password"
+              />
+            </label>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                disabled={!connected || pending || !authUser.trim() || !authPass}
+                onClick={login}
+                className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
+              >
+                Log in
+              </button>
+              <button
+                type="button"
+                disabled={!connected || pending || !authUser.trim() || !authPass}
+                onClick={register}
+                className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium disabled:opacity-50 dark:border-zinc-600"
+              >
+                Create account
+              </button>
+            </div>
+          </section>
+        ) : !room ? (
           <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
             <h2 className="mb-4 text-base font-medium">Join a room</h2>
             <label className="mb-2 block text-sm text-zinc-600 dark:text-zinc-400">
@@ -220,7 +357,7 @@ export function BlackjackRoom() {
                 {room.phase === "lobby" && (
                   <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                     {room.players.length} player{room.players.length === 1 ? "" : "s"} — need 2 to
-                    start
+                    start{allBet ? "" : " (waiting on bets)"}
                   </p>
                 )}
               </div>
@@ -294,6 +431,8 @@ export function BlackjackRoom() {
                         )}
                       </h3>
                       <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                        <span>Chips: {p.chips}</span>
+                        <span className="ml-3">Bet: {p.bet || "—"}</span>
                         {p.bust && <span className="font-semibold text-red-600">Bust</span>}
                         {!p.bust && p.stood && (
                           <span className="font-semibold text-zinc-500">Standing</span>
@@ -318,6 +457,44 @@ export function BlackjackRoom() {
                 );
               })}
             </section>
+
+            {(room.phase === "lobby" || room.phase === "finished") && me && (
+              <section className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+                <h2 className="text-sm font-medium">Your bet</h2>
+                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                  Everyone must bet before the host can start. Losers lose their bet, ties get their bet
+                  back, and the winner gains an extra amount equal to their bet.
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <input
+                    className="w-40 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100"
+                    value={betAmount}
+                    onChange={(e) => setBetAmount(e.target.value)}
+                    placeholder="100"
+                    inputMode="numeric"
+                  />
+                  <button
+                    type="button"
+                    disabled={pending || !betAmount.trim()}
+                    onClick={setBet}
+                    className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
+                  >
+                    Set bet
+                  </button>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => {
+                      setBetAmount("0");
+                      setBet();
+                    }}
+                    className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium disabled:opacity-50 dark:border-zinc-600"
+                  >
+                    Clear bet
+                  </button>
+                </div>
+              </section>
+            )}
 
             {room.phase === "playing" && (
               <div className="sticky bottom-4 flex flex-wrap justify-center gap-3 rounded-2xl border border-zinc-200 bg-white/95 p-4 shadow-lg backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/95">

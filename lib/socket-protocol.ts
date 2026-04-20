@@ -7,6 +7,8 @@ export type GamePhase = "lobby" | "playing" | "finished";
 export type PlayerSnapshot = {
   id: string;
   name: string;
+  chips: number;
+  bet: number;
   hand: string[];
   concealedCount: number;
   bust: boolean;

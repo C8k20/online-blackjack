@@ -10,6 +10,19 @@ function socketUrl(): string {
   return process.env.NEXT_PUBLIC_SOCKET_URL ?? "http://127.0.0.1:3001";
 }
 
+async function readAuthJson(
+  r: Response,
+): Promise<{ ok: boolean; token?: string; error?: string }> {
+  const text = await r.text();
+  try {
+    return JSON.parse(text) as { ok: boolean; token?: string; error?: string };
+  } catch {
+    throw new Error(
+      `Game server returned an invalid response. Restart online-blackjack-server (npm run dev) at ${socketUrl()} and try again.`,
+    );
+  }
+}
+
 export function BlackjackRoom() {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
@@ -150,7 +163,7 @@ export function BlackjackRoom() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ username: authUser, password: authPass }),
       });
-      const j = (await r.json()) as { ok: boolean; token?: string; error?: string };
+      const j = await readAuthJson(r);
       if (!j.ok || !j.token) throw new Error(j.error ?? "Login failed");
       window.localStorage.setItem("blackjackToken", j.token);
       setToken(j.token);
@@ -171,7 +184,7 @@ export function BlackjackRoom() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ username: authUser, password: authPass }),
       });
-      const j = (await r.json()) as { ok: boolean; token?: string; error?: string };
+      const j = await readAuthJson(r);
       if (!j.ok || !j.token) throw new Error(j.error ?? "Register failed");
       window.localStorage.setItem("blackjackToken", j.token);
       setToken(j.token);

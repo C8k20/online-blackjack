@@ -5,6 +5,8 @@ import { io, type Socket } from "socket.io-client";
 import type { RoomSnapshot } from "@/lib/socket-protocol";
 import { CardBack } from "@/components/CardBack";
 import { PlayingCard } from "@/components/PlayingCard";
+import { RankBadge } from "@/components/RankBadge";
+import { UserProfilePanel, type UserProfileData } from "@/components/UserProfilePanel";
 
 function socketUrl(): string {
   return process.env.NEXT_PUBLIC_SOCKET_URL ?? "http://127.0.0.1:3001";
@@ -23,12 +25,40 @@ export function BlackjackRoom() {
   const [authUser, setAuthUser] = useState<string>("");
   const [authPass, setAuthPass] = useState<string>("");
   const [betAmount, setBetAmount] = useState<string>("");
+  const [profile, setProfile] = useState<UserProfileData | null>(null);
+
+  const fetchProfile = useCallback(async (authToken: string) => {
+    try {
+      const r = await fetch(`${socketUrl()}/me`, {
+        headers: { authorization: `Bearer ${authToken}` },
+      });
+      const j = (await r.json()) as { ok: boolean } & Partial<UserProfileData>;
+      if (j.ok && j.userId && j.username != null && j.rank) {
+        setProfile({
+          userId: j.userId,
+          username: j.username,
+          chips: j.chips ?? 0,
+          rankPoints: j.rankPoints ?? 0,
+          rank: j.rank,
+        });
+      } else {
+        setProfile(null);
+      }
+    } catch {
+      setProfile(null);
+    }
+  }, []);
 
   useEffect(() => {
     const saved =
       typeof window !== "undefined" ? window.localStorage.getItem("blackjackToken") : null;
     if (saved) setToken(saved);
   }, []);
+
+  useEffect(() => {
+    if (token) void fetchProfile(token);
+    else setProfile(null);
+  }, [token, fetchProfile]);
 
   useEffect(() => {
     const s = io(socketUrl(), {
@@ -48,8 +78,12 @@ export function BlackjackRoom() {
     });
 
     s.on("state", (snapshot: RoomSnapshot | null) => {
-      if (snapshot) setRoom(snapshot);
-      else {
+      if (snapshot) {
+        setRoom(snapshot);
+        if (snapshot.phase === "finished" && token) {
+          void fetchProfile(token);
+        }
+      } else {
         setRoom(null);
         setMyPlayerId(null);
       }
@@ -64,7 +98,7 @@ export function BlackjackRoom() {
       s.removeAllListeners();
       s.close();
     };
-  }, [token]);
+  }, [token, fetchProfile]);
 
   const runAck = useCallback(
     (err: unknown) => {
@@ -155,6 +189,7 @@ export function BlackjackRoom() {
       window.localStorage.setItem("blackjackToken", j.token);
       setToken(j.token);
       setAuthPass("");
+      void fetchProfile(j.token);
     } catch (e) {
       setBanner(e instanceof Error ? e.message : "Login failed");
     } finally {
@@ -176,6 +211,7 @@ export function BlackjackRoom() {
       window.localStorage.setItem("blackjackToken", j.token);
       setToken(j.token);
       setAuthPass("");
+      void fetchProfile(j.token);
     } catch (e) {
       setBanner(e instanceof Error ? e.message : "Register failed");
     } finally {
@@ -187,6 +223,7 @@ export function BlackjackRoom() {
     const t = token;
     window.localStorage.removeItem("blackjackToken");
     setToken("");
+    setProfile(null);
     leaveRoom();
     if (!t) return;
     try {
@@ -222,6 +259,11 @@ export function BlackjackRoom() {
 
   const canHit = !!(myTurn && (room?.deckRemaining ?? 0) > 0);
   const canStand = !!myTurn;
+
+  const myRankChange = useMemo(
+    () => room?.rankChanges?.find((c) => c.playerId === myPlayerId) ?? null,
+    [room, myPlayerId],
+  );
 
   return (
     <div className="min-h-full flex flex-col bg-zinc-100 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
@@ -263,7 +305,7 @@ export function BlackjackRoom() {
           <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
             <h2 className="mb-4 text-base font-medium">Account</h2>
             <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">
-              Create an account or log in to save your chips and bets.
+              Create an account or log in to save your chips, bets, and competitive rank.
             </p>
             <label className="mb-2 block text-sm text-zinc-600 dark:text-zinc-400">
               Username
@@ -305,8 +347,10 @@ export function BlackjackRoom() {
             </div>
           </section>
         ) : !room ? (
-          <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-            <h2 className="mb-4 text-base font-medium">Join a room</h2>
+          <>
+            {profile ? <UserProfilePanel profile={profile} /> : null}
+            <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <h2 className="mb-4 text-base font-medium">Join a room</h2>
             <label className="mb-2 block text-sm text-zinc-600 dark:text-zinc-400">
               Display name
               <input
@@ -348,8 +392,14 @@ export function BlackjackRoom() {
               </button>
             </div>
           </section>
+          </>
         ) : (
           <>
+            {profile ? (
+              <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
+                <UserProfilePanel profile={profile} compact />
+              </div>
+            ) : null}
             <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
               <div>
                 <p className="text-xs uppercase tracking-wide text-zinc-500">Room</p>
@@ -400,9 +450,24 @@ export function BlackjackRoom() {
             )}
 
             {room.outcomeMessage && room.phase === "finished" && (
-              <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-center text-base font-medium dark:border-zinc-800 dark:bg-zinc-900/50">
-                {room.outcomeMessage}
-              </p>
+              <div className="space-y-2">
+                <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-center text-base font-medium dark:border-zinc-800 dark:bg-zinc-900/50">
+                  {room.outcomeMessage}
+                </p>
+                {myRankChange ? (
+                  <p
+                    className={`rounded-xl border px-4 py-2 text-center text-sm font-medium ${
+                      myRankChange.delta > 0
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-200"
+                        : "border-red-200 bg-red-50 text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200"
+                    }`}
+                  >
+                    Rank {myRankChange.delta > 0 ? "+" : ""}
+                    {myRankChange.delta} RP — now {myRankChange.rank.stageLabel} (
+                    {myRankChange.rankPoints} RP)
+                  </p>
+                ) : null}
+              </div>
             )}
 
             <section className="space-y-6">
@@ -419,17 +484,20 @@ export function BlackjackRoom() {
                     }`}
                   >
                     <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-                      <h3 className="font-medium">
-                        {p.name}
-                        {p.id === room.hostPlayerId && (
-                          <span className="ml-2 text-xs font-normal text-zinc-500">(host)</span>
-                        )}
-                        {isSelf && (
-                          <span className="ml-2 text-xs font-normal text-emerald-600 dark:text-emerald-400">
-                            (you)
-                          </span>
-                        )}
-                      </h3>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-medium">
+                          {p.name}
+                          {p.id === room.hostPlayerId && (
+                            <span className="ml-2 text-xs font-normal text-zinc-500">(host)</span>
+                          )}
+                          {isSelf && (
+                            <span className="ml-2 text-xs font-normal text-emerald-600 dark:text-emerald-400">
+                              (you)
+                            </span>
+                          )}
+                        </h3>
+                        <RankBadge rank={p.rank} size="sm" />
+                      </div>
                       <div className="text-sm text-zinc-600 dark:text-zinc-400">
                         <span>Chips: {p.chips}</span>
                         <span className="ml-3">Bet: {p.bet || "—"}</span>

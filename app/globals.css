@@ -24,3 +24,405 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ── Rank badge shine system ── */
+@keyframes rank-shimmer {
+  0% { transform: translateX(-120%) skewX(-18deg); }
+  100% { transform: translateX(220%) skewX(-18deg); }
+}
+
+@keyframes rank-pulse-glow {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.15); }
+}
+
+@keyframes rank-opal-shift {
+  0% { background-position: 0% 40%; }
+  50% { background-position: 100% 60%; }
+  100% { background-position: 0% 40%; }
+}
+
+@keyframes rank-opal-hue {
+  0%, 100% { filter: hue-rotate(0deg) saturate(1.05); }
+  50% { filter: hue-rotate(18deg) saturate(1.15); }
+}
+
+@keyframes rank-crystal-sparkle {
+  0%, 100% { opacity: 0.55; }
+  40% { opacity: 1; }
+  70% { opacity: 0.75; }
+}
+
+@keyframes rank-crystal-glint {
+  0% { transform: translateX(-130%) rotate(12deg); }
+  100% { transform: translateX(230%) rotate(12deg); }
+}
+
+@keyframes rank-opal-prism {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.65; transform: scale(1.02); }
+}
+
+@keyframes rank-champion-glint {
+  0% { transform: translateX(-140%) skewX(-12deg); opacity: 0; }
+  30% { opacity: 0.85; }
+  100% { transform: translateX(240%) skewX(-12deg); opacity: 0; }
+}
+
+.rank-solid {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--rank-color) 85%, #000) 0%, var(--rank-color) 45%, color-mix(in srgb, var(--rank-color) 70%, #fff) 100%);
+  border-color: color-mix(in srgb, var(--rank-color) 60%, #fff);
+  color: #0f172a;
+  box-shadow: 0 0 12px var(--rank-glow), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+/* ── Material tiers: Bronze, Silver, Gold ── */
+.rank-metal-bronze {
+  background: linear-gradient(145deg, #5c3310 0%, #8b5a2b 18%, #cd7f32 38%, #e8a86a 52%, #b87333 72%, #6b3f1f 100%);
+  border-color: #d4956a;
+  color: #fff8f0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 14px rgba(184, 115, 51, 0.5), inset 0 1px 0 rgba(255, 220, 180, 0.45);
+}
+
+.rank-metal-silver {
+  background: linear-gradient(145deg, #5c6370 0%, #8a9199 20%, #d8dde3 42%, #f4f7fa 52%, #b8bec6 72%, #6e7580 100%);
+  border-color: #eef2f6;
+  color: #1e293b;
+  box-shadow: 0 0 14px rgba(192, 192, 192, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.rank-metal-gold {
+  background: linear-gradient(145deg, #7a5a10 0%, #a67c00 22%, #d4af37 40%, #ffe566 52%, #c9a227 74%, #8b6914 100%);
+  border-color: #f0d060;
+  color: #3d2e08;
+  box-shadow: 0 0 16px rgba(212, 175, 55, 0.55), inset 0 1px 0 rgba(255, 245, 180, 0.55);
+}
+
+/* ── Crystal tiers: Diamond, Emerald (more detail than Gold, less than Master) ── */
+.rank-crystal-diamond,
+.rank-crystal-emerald {
+  isolation: isolate;
+  color: #0c4a6e;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.65);
+  box-shadow:
+    0 0 20px var(--crystal-glow, rgba(56, 189, 248, 0.5)),
+    0 0 10px var(--crystal-core, rgba(224, 242, 254, 0.75)),
+    inset 0 2px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -3px 6px var(--crystal-depth, rgba(3, 105, 161, 0.22));
+}
+
+.rank-crystal-diamond {
+  --crystal-glow: rgba(56, 189, 248, 0.55);
+  --crystal-core: rgba(224, 242, 254, 0.85);
+  --crystal-depth: rgba(3, 105, 161, 0.28);
+  background-color: #0ea5e9;
+  background-image:
+    radial-gradient(circle at 18% 28%, rgba(255, 255, 255, 0.95) 0%, transparent 2.8%),
+    radial-gradient(circle at 72% 62%, rgba(255, 255, 255, 0.75) 0%, transparent 2.2%),
+    radial-gradient(circle at 48% 18%, rgba(255, 255, 255, 0.55) 0%, transparent 1.8%),
+    linear-gradient(148deg, #0369a1 0%, #0284c7 16%, #38bdf8 34%, #f0f9ff 48%, #7dd3fc 58%, #0ea5e9 78%, #075985 100%);
+  border-color: #bae6fd;
+}
+
+.rank-crystal-emerald {
+  --crystal-glow: rgba(52, 211, 153, 0.55);
+  --crystal-core: rgba(209, 250, 229, 0.85);
+  --crystal-depth: rgba(6, 95, 70, 0.28);
+  color: #14532d;
+  background-color: #10b981;
+  background-image:
+    radial-gradient(circle at 22% 32%, rgba(255, 255, 255, 0.95) 0%, transparent 2.8%),
+    radial-gradient(circle at 68% 58%, rgba(255, 255, 255, 0.75) 0%, transparent 2.2%),
+    radial-gradient(circle at 52% 22%, rgba(255, 255, 255, 0.55) 0%, transparent 1.8%),
+    linear-gradient(148deg, #065f46 0%, #059669 16%, #34d399 34%, #ecfdf5 48%, #86efac 58%, #10b981 78%, #064e3b 100%);
+  border-color: #a7f3d0;
+}
+
+.rank-crystal-diamond::before,
+.rank-crystal-emerald::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      72deg,
+      transparent 0,
+      transparent 10px,
+      rgba(255, 255, 255, 0.14) 10px,
+      rgba(255, 255, 255, 0.14) 11px
+    ),
+    repeating-linear-gradient(
+      -72deg,
+      transparent 0,
+      transparent 14px,
+      rgba(255, 255, 255, 0.09) 14px,
+      rgba(255, 255, 255, 0.09) 15px
+    ),
+    linear-gradient(
+      118deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.42) 46%,
+      rgba(255, 255, 255, 0.12) 52%,
+      transparent 68%
+    );
+  animation: rank-crystal-sparkle 3.2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Opal tiers: Master, Grandmaster ── */
+.rank-opal {
+  isolation: isolate;
+  background-color: #e8d5ff;
+  background-image:
+    radial-gradient(circle at 12% 22%, rgba(255, 255, 255, 0.9) 0%, transparent 3%),
+    radial-gradient(circle at 88% 78%, rgba(255, 255, 255, 0.65) 0%, transparent 2.5%),
+    radial-gradient(circle at 62% 12%, rgba(255, 220, 255, 0.5) 0%, transparent 2%),
+    radial-gradient(circle at 35% 85%, rgba(200, 255, 255, 0.45) 0%, transparent 2.2%),
+    linear-gradient(
+      125deg,
+      #ffc8dd 0%,
+      #c8e7ff 18%,
+      #c4ffdc 36%,
+      #e6c8ff 54%,
+      #ffe6b4 72%,
+      #b4dcff 88%,
+      #ffc8dd 100%
+    );
+  background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 400% 400%;
+  animation: rank-opal-shift 5s ease infinite;
+  border-color: rgba(255, 255, 255, 0.8);
+  color: #1e1b2e;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 0 24px rgba(200, 180, 255, 0.5),
+    0 0 32px rgba(180, 220, 255, 0.35),
+    0 0 14px rgba(255, 200, 220, 0.3),
+    inset 0 2px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -2px 6px rgba(140, 120, 200, 0.18);
+}
+
+.rank-opal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      65deg,
+      transparent 0,
+      transparent 16px,
+      rgba(255, 255, 255, 0.1) 16px,
+      rgba(255, 255, 255, 0.1) 17px
+    ),
+    repeating-linear-gradient(
+      -65deg,
+      transparent 0,
+      transparent 20px,
+      rgba(255, 255, 255, 0.06) 20px,
+      rgba(255, 255, 255, 0.06) 21px
+    ),
+    linear-gradient(
+      55deg,
+      transparent 22%,
+      rgba(255, 255, 255, 0.5) 40%,
+      rgba(255, 255, 255, 0.18) 50%,
+      transparent 68%
+    );
+  animation: rank-opal-prism 4s ease-in-out infinite, rank-shimmer 2.8s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.rank-opal-detailed {
+  animation: rank-opal-shift 3s ease infinite, rank-opal-hue 5s ease-in-out infinite;
+  box-shadow:
+    0 0 28px rgba(255, 180, 220, 0.55),
+    0 0 42px rgba(180, 220, 255, 0.45),
+    0 0 18px rgba(196, 255, 220, 0.4),
+    0 0 10px rgba(255, 230, 180, 0.35),
+    inset 0 2px 5px rgba(255, 255, 255, 0.6),
+    inset 0 -3px 8px rgba(120, 100, 180, 0.15);
+}
+
+.rank-opal-detailed::before {
+  animation: rank-opal-prism 2.8s ease-in-out infinite, rank-shimmer 2s ease-in-out infinite;
+  background:
+    repeating-linear-gradient(
+      65deg,
+      transparent 0,
+      transparent 12px,
+      rgba(255, 255, 255, 0.14) 12px,
+      rgba(255, 255, 255, 0.14) 13px
+    ),
+    repeating-linear-gradient(
+      -65deg,
+      transparent 0,
+      transparent 16px,
+      rgba(255, 255, 255, 0.09) 16px,
+      rgba(255, 255, 255, 0.09) 17px
+    ),
+    radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.35) 0%, transparent 18%),
+    radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.25) 0%, transparent 15%),
+    linear-gradient(
+      55deg,
+      transparent 18%,
+      rgba(255, 255, 255, 0.55) 38%,
+      rgba(255, 255, 255, 0.2) 50%,
+      transparent 72%
+    );
+}
+
+/* ── Champion: royal violet + gold crown glow ── */
+.rank-champion {
+  isolation: isolate;
+  background-color: #4c1d95;
+  background-image:
+    radial-gradient(circle at 15% 25%, rgba(255, 255, 255, 0.85) 0%, transparent 2.5%),
+    radial-gradient(circle at 82% 72%, rgba(252, 211, 77, 0.9) 0%, transparent 3%),
+    radial-gradient(circle at 55% 15%, rgba(253, 224, 71, 0.65) 0%, transparent 2%),
+    radial-gradient(circle at 40% 80%, rgba(255, 255, 255, 0.4) 0%, transparent 2.2%),
+    linear-gradient(135deg, #1e1035 0%, #4c1d95 28%, #7c3aed 48%, #a855f7 62%, #f59e0b 82%, #fcd34d 100%);
+  border-color: #fde68a;
+  color: #fffbeb;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 0 16px rgba(251, 191, 36, 0.5);
+  box-shadow:
+    0 0 28px rgba(124, 58, 237, 0.6),
+    0 0 20px rgba(251, 191, 36, 0.45),
+    0 0 10px rgba(255, 255, 255, 0.2),
+    inset 0 2px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -3px 8px rgba(30, 16, 53, 0.35);
+}
+
+.rank-champion::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      80deg,
+      transparent 0,
+      transparent 18px,
+      rgba(253, 224, 71, 0.12) 18px,
+      rgba(253, 224, 71, 0.12) 19px
+    ),
+    linear-gradient(
+      125deg,
+      transparent 25%,
+      rgba(255, 255, 255, 0.35) 42%,
+      rgba(252, 211, 77, 0.25) 50%,
+      transparent 65%
+    );
+  animation: rank-opal-prism 3.5s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.rank-badge,
+.rank-profile-banner,
+.rank-progress-bar {
+  position: relative;
+  overflow: hidden;
+}
+
+.rank-opal.rank-badge,
+.rank-opal.rank-profile-banner,
+.rank-opal.rank-progress-bar,
+.rank-crystal-diamond.rank-badge,
+.rank-crystal-diamond.rank-profile-banner,
+.rank-crystal-diamond.rank-progress-bar,
+.rank-crystal-emerald.rank-badge,
+.rank-crystal-emerald.rank-profile-banner,
+.rank-crystal-emerald.rank-progress-bar,
+.rank-champion.rank-badge,
+.rank-champion.rank-profile-banner,
+.rank-champion.rank-progress-bar {
+  isolation: isolate;
+}
+
+.rank-badge::after,
+.rank-profile-banner::after,
+.rank-progress-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.55) 50%, transparent 65%);
+  animation: rank-shimmer 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.rank-shine-1::after { opacity: 0.35; animation-duration: 4.5s; }
+.rank-shine-2::after { opacity: 0.45; animation-duration: 4s; }
+.rank-shine-3::after { opacity: 0.55; animation-duration: 3.5s; }
+.rank-shine-4::after { opacity: 0.65; animation-duration: 3s; }
+.rank-shine-5::after { opacity: 0.75; animation-duration: 2.8s; }
+.rank-shine-6::after { opacity: 0.85; animation-duration: 2.4s; }
+.rank-shine-7::after { opacity: 0.95; animation-duration: 2s; }
+.rank-shine-8::after { opacity: 1; animation-duration: 1.6s; }
+
+/* Tier-specific sweep / glint overrides (must follow generic ::after) */
+.rank-crystal-diamond.rank-badge::after,
+.rank-crystal-diamond.rank-profile-banner::after,
+.rank-crystal-diamond.rank-progress-bar::after,
+.rank-crystal-emerald.rank-badge::after,
+.rank-crystal-emerald.rank-profile-banner::after,
+.rank-crystal-emerald.rank-progress-bar::after {
+  background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.72) 50%, transparent 62%);
+  animation: rank-crystal-glint 2.6s ease-in-out infinite;
+}
+
+.rank-opal.rank-badge::after,
+.rank-opal.rank-profile-banner::after,
+.rank-opal.rank-progress-bar::after {
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.65) 48%, rgba(255, 255, 255, 0.2) 52%, transparent 70%);
+  animation: rank-shimmer 2.2s ease-in-out infinite;
+}
+
+.rank-opal-detailed.rank-badge::after,
+.rank-opal-detailed.rank-profile-banner::after,
+.rank-opal-detailed.rank-progress-bar::after {
+  background: linear-gradient(105deg, transparent 28%, rgba(255, 255, 255, 0.78) 46%, rgba(255, 255, 255, 0.3) 54%, transparent 72%);
+  animation: rank-shimmer 1.7s ease-in-out infinite;
+}
+
+.rank-champion.rank-badge::after,
+.rank-champion.rank-profile-banner::after,
+.rank-champion.rank-progress-bar::after {
+  background: linear-gradient(105deg, transparent 32%, rgba(255, 255, 255, 0.75) 48%, rgba(252, 211, 77, 0.5) 52%, transparent 68%);
+  animation: rank-champion-glint 2.2s ease-in-out infinite;
+}
+
+.rank-icon {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.45);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.35);
+}
+
+.rank-profile-card .rank-profile-banner {
+  min-height: 7rem;
+}
+
+.rank-profile-banner.rank-solid,
+.rank-profile-banner.rank-metal-bronze,
+.rank-profile-banner.rank-champion {
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.rank-profile-banner .rank-badge {
+  background: rgba(0, 0, 0, 0.18);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: inherit;
+  backdrop-filter: blur(4px);
+}
+
+.rank-profile-banner.rank-metal-silver .rank-badge,
+.rank-profile-banner.rank-metal-gold .rank-badge,
+.rank-profile-banner.rank-crystal-diamond .rank-badge,
+.rank-profile-banner.rank-crystal-emerald .rank-badge,
+.rank-profile-banner.rank-opal .rank-badge {
+  background: rgba(255, 255, 255, 0.28);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: inherit;
+}
+
